@@ -1,0 +1,55 @@
+Package: cellsembleR
+Title: A Framework for Signature-Based Cellular and Biological Program Profiling from Transcriptomic Data
+Version: 0.0.1
+Authors@R: c(
+    person("Luiz Fernando", "Cardoso Garcia",
+           email = "luiz.cardoso@ufpr.br",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-9616-0927")
+    ),
+    person("Ana Carolina", "Demczuk",
+           email = "anademczuk@ufpr.br",
+           role = "ctb"
+    ),
+    person("Giovanna", "Lyssa Nascimento",
+           email = "giovanna.lyssa@ufpr.br",
+           role = "ctb"
+    )
+  )
+Description: 
+    provides a framework for extracting, integrating, and interpreting
+    biological signatures from bulk transcriptomic data. The
+    package enables sample-level scoring of predefined or user-defined gene
+    signatures, including immune and stromal cell profiles, followed by
+    comparative analysis, association analysis, dimensionality reduction, and
+    visualization. It supports multiple signature-based approaches, including
+    external Cellular profiling methods and custom biological programs,
+    facilitating the exploration of cellular composition and transcriptional
+    states across experimental conditions.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Imports:
+    AnnotationDbi,
+    circlize,
+    ggplot2,
+    immunedeconv,    
+    MCPcounter,
+    org.Hs.eg.db,
+    rlang,
+    stats,
+    utils
+Suggests:
+    autornaR,
+    car,
+    ComplexHeatmap,
+    crayon,
+    knitr,
+    rmarkdown,
+    testthat,
+    umap,
+    xCell
+Depends: R (>= 3.5)
+NeedsCompilation: no
+Maintainer: Luiz Garcia <luiz.cardoso@ufpr.br>   

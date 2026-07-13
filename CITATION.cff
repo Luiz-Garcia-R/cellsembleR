@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+title: "cellsembleR"
+message: "If you use this software, please cite it as below."
+type: software
+
+author:
+  - family-name: Cardoso Garcia
+    given-name: Luiz Fernando
+    affiliation: Universidade Federal do Paraná
+    orcid: "https://orcid.org/0000-0002-9616-0927"
+
+abstract: >
+    Provides a framework for extracting, integrating, and interpreting
+    biological signatures from bulk transcriptomic data. The
+    package enables sample-level scoring of predefined or user-defined gene
+    signatures, including immune and stromal cell profiles, followed by
+    comparative analysis, association analysis, dimensionality reduction, and
+    visualization. It supports multiple signature-based approaches, including
+    external Cellular profiling methods and custom biological programs,
+    facilitating the exploration of cellular composition and transcriptional
+    states across experimental conditions.
+
+keywords:
+  - RNA-seq
+  - bioinformatics
+  - gene signatures
+  - cell profilling
+  - R
+
+version: "0.0.1"
+date-released: 2026-07-10
+
+repository-code: "https://github.com/Luiz-Garcia-R/cellsembleR"
+url: "https://github.com/Luiz-Garcia-R/cellsembleR"
+
+license: "MIT"
