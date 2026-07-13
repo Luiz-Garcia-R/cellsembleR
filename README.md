@@ -37,21 +37,29 @@ tools to estimate and analyze these hidden biological features.
 The general workflow is:
 
 Bulk RNA-seq data
+
         |
         v
+
 Cell signature estimation
 (EPIC / xCell / MCP-counter / Custom signatures)
+
         |
         v
+
 cellsemble_result object
+
         |
         +----------------+
         |                |
         v                v
+
 Statistical analysis   Visualization
 (compare/delta)        (heatmap/dimred/boxplot)
+
         |
         v
+
 Biological interpretation
 
 ## Input Data Format
@@ -227,25 +235,27 @@ Example:
 
 ```r
 
-signatures <- list(
+cells_signatures <- list(
 
-  Fibroblasts = c(
-    "DCN",
-    "LUM",
-    "COL1A1"
-  ),
+# Parent population
+Lymphocytes = c(
+"CD3D",
+"CD3E",
+"CD79A",
+"MS4A1"
+),
 
-  myCAF = c(
-    "FAP",
-    "PDPN",
-    "THY1"
-  )
-
+# Child population
+T_cells = c(
+"CD3D",
+"CD3E",
+"TRBC1"
+)
 )
 
 res <- cellsemble_custom_run(
     project = my_project,
-    gene_sets = signatures
+    signatures = cells_signature
 )
 
 ```
@@ -255,12 +265,12 @@ Parent-child relationships can also be modeled:
 ```r
 
 parent_sets <- list(
-    myCAF = "Fibroblasts"
+    T_cells = "Lymphocytes"
 )
 
 res <- cellsemble_custom_run(
     project = my_project,
-    gene_sets = signatures,
+    signatures = cells_signatures,
     parent_sets = parent_sets,
     adjustment = "subtract"
 )
@@ -290,31 +300,26 @@ reproducibility and downstream exploration.
 ```r
 
 # Estimate cellular signatures
-
 res <- cellsemble_epic_run(
     project = my_project
 )
 
 # Compare groups
-
 comp <- cellsemble_compare(
     res
 )
 
 # Visualize differences
-
 cellsemble_delta(
     comp
 )
 
 # Heatmap visualization
-
 cellsemble_heatmap(
     res
 )
 
 # Dimensional reduction
-
 cellsemble_dimred(
     res,
     method = "pca"

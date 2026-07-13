@@ -13,7 +13,7 @@
     "\n",
     version_text, " loaded successfully!\n",
     "--------------------------------------------------\n",
-    "A package for streamlined RNA-seq data analysis.\n",
+    "A package for streamlined cells signatures analysis.\n",
     "GitHub: https://github.com/Luiz-Garcia-R/cellsembleR\n"
   )
 }

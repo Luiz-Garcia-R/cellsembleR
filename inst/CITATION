@@ -3,13 +3,9 @@ citHeader("To cite cellsembleR:")
 bibentry(
   bibtype = "Manual",
   title = "A Framework for Signature-Based Cellular and Biological Program Profiling from Transcriptomic Data",
-  author = person(
-    "Luiz Fernando",
-    "Cardoso Garcia",
-    comment = c(
-      ORCID = "0000-0002-9616-0927",
-      affiliation = "Universidade Federal do Paraná"
-    )
+  author  = person(
+    "Luiz Fernando", "Cardoso Garcia",
+    comment = "Universidade Federal do Paraná"
   ),
   year = "2026",
   note = "R package version 0.0.1",
