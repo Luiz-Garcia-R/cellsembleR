@@ -3,9 +3,9 @@ title: "cellsembleR"
 message: "If you use this software, please cite it as below."
 type: software
 
-author:
-  - family-name: Cardoso Garcia
-    given-name: Luiz Fernando
+authors:
+  - family-names: Cardoso Garcia
+    given-names: Luiz Fernando
     affiliation: Universidade Federal do Paraná
     orcid: "https://orcid.org/0000-0002-9616-0927"
 
@@ -16,7 +16,7 @@ abstract: >
     signatures, including immune and stromal cell profiles, followed by
     comparative analysis, association analysis, dimensionality reduction, and
     visualization. It supports multiple signature-based approaches, including
-    external Cellular profiling methods and custom biological programs,
+    external cellular profiling methods and custom biological programs,
     facilitating the exploration of cellular composition and transcriptional
     states across experimental conditions.
 
@@ -24,11 +24,11 @@ keywords:
   - RNA-seq
   - bioinformatics
   - gene signatures
-  - cell profilling
+  - cell profiling
   - R
 
 version: "0.0.1"
-date-released: 2026-07-10
+date-released: "2026-07-10"
 
 repository-code: "https://github.com/Luiz-Garcia-R/cellsembleR"
 url: "https://github.com/Luiz-Garcia-R/cellsembleR"
