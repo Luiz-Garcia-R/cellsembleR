@@ -232,7 +232,7 @@ cellsemble_boxplot <- function(
       title = signature,
       subtitle = subtitle,
       x = NULL,
-      y = "Gene set score"
+      y = "Signature score"
     ) +
 
     ggplot2::theme_bw(base_size = 12) +
@@ -308,9 +308,9 @@ cellsemble_boxplot <- function(
   # -------------------------
   .print_header("Cellsemble Boxplot")
 
-  .print_block("Gene set", function() {
+  .print_block("Signature", function() {
 
-    cat("Gene set:            ", signature, "\n")
+    cat("Signature:            ", signature, "\n")
     cat("Groups:              ",
         paste(unique(plot_df$group), collapse = " vs "),
         "\n")
@@ -328,10 +328,10 @@ cellsemble_boxplot <- function(
           round(stat_row$effect_size, 3),
           "\n")
 
-      cat("95% CI:               [",
-          round(stat_row$ci_low, 3),
+      cat("95% CI (diff):       [",
+          round(stat_row$difference_ci_low, 3),
           ", ",
-          round(stat_row$ci_high, 3),
+          round(stat_row$difference_ci_high, 3),
           "]\n", sep = "")
 
       cat("Adjusted p-value:    ",

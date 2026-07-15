@@ -320,7 +320,7 @@ cellsemble_compare <- function(
     # -------------------------
     results[[gs]] <- data.frame(
 
-      gene_set = gs,
+      signatures = gs,
 
       group1 = g1,
       group2 = g2,

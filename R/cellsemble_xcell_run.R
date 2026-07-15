@@ -133,6 +133,8 @@ cellsemble_xcell_run <- function(
     )
   }
 
+  utils::data("xCell.data", package = "xCell", envir = .GlobalEnv)
+
   xcell_scores <- immunedeconv::deconvolute(
     expr_matrix,
     method = "xcell"
