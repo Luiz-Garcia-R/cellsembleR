@@ -7,6 +7,7 @@
 cellsemble_delta(
   compare_obj,
   metric = c("effect_size", "difference"),
+  title = "Differential Cellsemble Scores",
   significance = TRUE,
   alpha = 0.05,
   sort = TRUE
@@ -21,6 +22,9 @@ group differences. Options are \code{"effect_size"} (default), which
 displays standardized differences between groups, or
 \code{"difference"}, which displays absolute differences in signature
 scores.}
+
+\item{title}{Character. Plot title. Standard text
+\code{"Differential Cellsemble Scores"}.}
 
 \item{significance}{Logical. If \code{TRUE}, significance labels based on
 adjusted p-values are displayed on the plot.}

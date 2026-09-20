@@ -135,190 +135,200 @@ cellsemble_custom_run <- function(project,
                                   store_matrix = FALSE,
                                   verbose = TRUE) {
 
-  adjustment <- match.arg(adjustment)
+adjustment <- match.arg(adjustment)
 
-  # -------------------------
-  # 1. Get data
-  # -------------------------
-  expr_matrix <- .cs_get_expr(project, id)
-  metadata    <- .cs_get_meta(project, id)
-  gene_annot  <- .cs_get_gene_annot(project, id)
+# =============================================================================
+# 1. Get data
+# =============================================================================
 
-  if (is.null(expr_matrix)) stop("Expression matrix not found.")
+expr_matrix <- .cs_get_expr(project, id)
+metadata    <- .cs_get_meta(project, id)
+gene_annot  <- .cs_get_gene_annot(project, id)
 
-  expr_matrix <- as.matrix(expr_matrix)
-  raw_matrix  <- expr_matrix
+if (is.null(expr_matrix)) stop("Expression matrix not found.")
 
-  # -------------------------
-  # 2. Align genes
-  # -------------------------
-  gene_annot <- .cs_align_gene_annot(gene_annot, expr_matrix)
+expr_matrix <- as.matrix(expr_matrix)
+raw_matrix  <- expr_matrix
 
-  valid <- !is.na(gene_annot$symbol)
+# =============================================================================
+# 2. Align genes
+# =============================================================================
 
-  expr_matrix <- expr_matrix[valid, , drop = FALSE]
-  gene_annot  <- gene_annot[valid, , drop = FALSE]
+gene_annot <- .cs_align_gene_annot(gene_annot, expr_matrix)
 
-  rownames(expr_matrix) <- gene_annot$symbol
+valid <- !is.na(gene_annot$symbol)
 
-  expr_matrix <- rowsum(expr_matrix, group = rownames(expr_matrix))
-  aggregated_matrix <- expr_matrix
+expr_matrix <- expr_matrix[valid, , drop = FALSE]
+gene_annot  <- gene_annot[valid, , drop = FALSE]
 
-  # HARD SAFETY CHECK
-  if (is.null(colnames(expr_matrix)) || length(colnames(expr_matrix)) == 0) {
-    colnames(expr_matrix) <- colnames(raw_matrix)
+rownames(expr_matrix) <- gene_annot$symbol
+
+expr_matrix <- rowsum(expr_matrix, group = rownames(expr_matrix))
+aggregated_matrix <- expr_matrix
+
+# HARD SAFETY CHECK
+if (is.null(colnames(expr_matrix)) || length(colnames(expr_matrix)) == 0) {
+  colnames(expr_matrix) <- colnames(raw_matrix)
+}
+
+# =============================================================================
+# 3. Z-score
+# =============================================================================
+
+if (zscore) {
+
+  expr_matrix <- t(scale(t(expr_matrix)))
+  expr_matrix[is.na(expr_matrix)] <- 0
+
+  colnames(expr_matrix) <- colnames(raw_matrix)
+  rownames(expr_matrix) <- rownames(aggregated_matrix)
+}
+
+# =============================================================================
+# 4. Get scores
+# =============================================================================
+
+if (!is.list(signatures) || is.null(names(signatures))) {
+  stop("signatures must be a named list")
+}
+
+scores <- data.frame(sample = colnames(expr_matrix))
+
+for (gs_name in names(signatures)) {
+
+  genes <- signatures[[gs_name]]
+  common <- intersect(genes, rownames(expr_matrix))
+
+  if (length(common) == 0) {
+    scores[[gs_name]] <- rep(NA, ncol(expr_matrix))
+  } else {
+    scores[[gs_name]] <- colMeans(expr_matrix[common, , drop = FALSE])
+  }
+}
+
+# Coverage
+coverage <- .check_gene_set_coverage(expr_matrix, signatures)
+
+# =============================================================================
+# 5. Parent adjustment
+# =============================================================================
+
+if (adjustment == "subtract") {
+
+  if (is.null(parent_sets)) {
+    stop("parent_sets required for subtraction")
   }
 
-  # -------------------------
-  # 3. Z-score
-  # -------------------------
-  if (zscore) {
-
-    expr_matrix <- t(scale(t(expr_matrix)))
-    expr_matrix[is.na(expr_matrix)] <- 0
-
-    colnames(expr_matrix) <- colnames(raw_matrix)
-    rownames(expr_matrix) <- rownames(aggregated_matrix)
+  if (!is.list(parent_sets) || is.null(names(parent_sets))) {
+    stop("parent_sets must be a named list: list(child = 'parent')")
   }
 
-  # -------------------------
-  # 4. Scores
-  # -------------------------
-  if (!is.list(signatures) || is.null(names(signatures))) {
-    stop("signatures must be a named list")
-  }
+  for (child in names(parent_sets)) {
 
-  scores <- data.frame(sample = colnames(expr_matrix))
+    parent <- parent_sets[[child]]
 
-  for (gs_name in names(signatures)) {
-
-    genes <- signatures[[gs_name]]
-    common <- intersect(genes, rownames(expr_matrix))
-
-    if (length(common) == 0) {
-      scores[[gs_name]] <- rep(NA, ncol(expr_matrix))
-    } else {
-      scores[[gs_name]] <- colMeans(expr_matrix[common, , drop = FALSE])
+    if (!child %in% colnames(scores)) {
+      warning(paste("Missing child:", child))
+      next
     }
-  }
 
-  # Coverage
-  coverage <- .check_gene_set_coverage(expr_matrix, signatures)
-
-  # -------------------------
-  # 5. Parent adjustment
-  # -------------------------
-  if (adjustment == "subtract") {
-
-    if (is.null(parent_sets)) {
-      stop("parent_sets required for subtraction")
+    if (!parent %in% colnames(scores)) {
+      warning(paste("Missing parent:", parent))
+      next
     }
 
-    if (!is.list(parent_sets) || is.null(names(parent_sets))) {
-      stop("parent_sets must be a named list: list(child = 'parent')")
-    }
-
-    for (child in names(parent_sets)) {
-
-      parent <- parent_sets[[child]]
-
-      if (!child %in% colnames(scores)) {
-        warning(paste("Missing child:", child))
-        next
-      }
-
-      if (!parent %in% colnames(scores)) {
-        warning(paste("Missing parent:", parent))
-        next
-      }
-
-      # conditional signature scoring
-      scores[[child]] <- scores[[child]] - scores[[parent]]
-    }
+    # conditional signature scoring
+    scores[[child]] <- scores[[child]] - scores[[parent]]
   }
+}
 
-  # -------------------------
-  # 6. Metadata (aligned only)
-  # -------------------------
-  metadata$sample <- as.character(metadata$Sample)
+# =============================================================================
+# 6. Metadata (aligned only)
+# =============================================================================
 
-  idx <- match(scores$sample, metadata$sample)
-  metadata_aligned <- metadata[idx, , drop = FALSE]
+metadata$sample <- as.character(metadata$Sample)
 
-  if (!"Group" %in% colnames(metadata_aligned)) {
-    stop("Group column not found in metadata")
-  }
+idx <- match(scores$sample, metadata$sample)
+metadata_aligned <- metadata[idx, , drop = FALSE]
 
-  scores$Group <- metadata_aligned$Group
+if (!"Group" %in% colnames(metadata_aligned)) {
+  stop("Group column not found in metadata")
+}
 
-  # -------------------------
-  # 7. Output
-  # -------------------------
-  obj <- list(
+scores$Group <- metadata_aligned$Group
 
-    # core results
-    scores = scores,
-    coverage = coverage,
+# =============================================================================
+# 7. Output
+# =============================================================================
 
-    # input structure (optional storage)
-    data = list(
-      expr_matrix = if (store_matrix) raw_matrix else NULL,
-      aggregated_matrix = if (store_matrix) aggregated_matrix else NULL
-    ),
+obj <- list(
 
-    # model configuration
-    signatures = signatures,
-    method = "custom_signature",
-    params = list(zscore = zscore),
+  # core results
+  scores = scores,
+  coverage = coverage,
 
-    # metadata
-    metadata = metadata,
+  # input structure (optional storage)
+  data = list(
+    expr_matrix = if (store_matrix) raw_matrix else NULL,
+    aggregated_matrix = if (store_matrix) aggregated_matrix else NULL
+  ),
 
-    # summary
-    dimensions = list(
-      n_genes = nrow(expr_matrix),
-      n_samples = ncol(expr_matrix)
+  # model configuration
+  signatures = signatures,
+  method = "custom_signature",
+  params = list(zscore = zscore),
+
+  # metadata
+  metadata = metadata,
+
+  # summary
+  dimensions = list(
+    n_genes = nrow(expr_matrix),
+    n_samples = ncol(expr_matrix)
+  )
+)
+
+class(obj) <- "cellsemble_result"
+
+# =============================================================================
+# 8. Console summary
+# =============================================================================
+
+if (verbose) {
+
+.print_header("Cellsemble Run")
+
+.print_block("Dataset summary", function() {
+
+  cat("Samples:          ", ncol(expr_matrix), "\n")
+  cat("Genes:            ", nrow(expr_matrix), "\n")
+  cat("Gene sets:        ", length(signatures), "\n")
+  cat("Scoring method:   ", "custom_signature", "\n")
+  cat("Z-score applied:  ", zscore, "\n")
+
+})
+
+.print_block("Gene set coverage", function() {
+
+  cov <- data.frame(
+    gene_set = names(coverage),
+    detected = sapply(coverage, function(x) x$detected),
+    total = sapply(coverage, function(x) x$total),
+    coverage = round(
+      sapply(coverage, function(x) x$proportion),
+      2
     )
   )
 
-  class(obj) <- "cellsemble_result"
+  print(cov)
 
-  # -------------------------
-  # 8. Console summary
-  # -------------------------
-  if (verbose) {
-
-  .print_header("Cellsemble Run")
-
-  .print_block("Dataset summary", function() {
-
-    cat("Samples:          ", ncol(expr_matrix), "\n")
-    cat("Genes:            ", nrow(expr_matrix), "\n")
-    cat("Gene sets:        ", length(signatures), "\n")
-    cat("Scoring method:   ", "custom_signature", "\n")
-    cat("Z-score applied:  ", zscore, "\n")
-
-  })
-
-  .print_block("Gene set coverage", function() {
-
-    cov <- data.frame(
-      gene_set = names(coverage),
-      detected = sapply(coverage, function(x) x$detected),
-      total = sapply(coverage, function(x) x$total),
-      coverage = round(
-        sapply(coverage, function(x) x$proportion),
-        2
-      )
-    )
-
-    print(cov)
-
-  })
+})
 }
 
-  # -------------------------
-  # 9. Return
-  # -------------------------
-  return(invisible(obj))
+# =============================================================================
+# 9. Return
+# =============================================================================
+
+return(invisible(obj))
+
 }

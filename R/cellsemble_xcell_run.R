@@ -64,222 +64,236 @@ cellsemble_xcell_run <- function(
     verbose = TRUE
 ) {
 
-  # -------------------------
-  # 0. Dependencies
-  # -------------------------
+# =============================================================================
+# 0. Dependencies
+# =============================================================================
+
   if (!requireNamespace("immunedeconv", quietly = TRUE)) {
-    stop(
-      "Please install 'immunedeconv'\n",
-      "install.packages('immunedeconv')"
-    )
-  }
+  stop(
+    "Please install 'immunedeconv'\n",
+    "install.packages('immunedeconv')"
+  )
+}
 
-  # -------------------------
-  # 1. Get data
-  # -------------------------
+# =============================================================================
+# 1. Get data
+# =============================================================================
+
   expr_matrix <- .cs_get_expr(project, id)
-  metadata    <- .cs_get_meta(project, id)
-  gene_annot  <- .cs_get_gene_annot(project, id)
+metadata    <- .cs_get_meta(project, id)
+gene_annot  <- .cs_get_gene_annot(project, id)
 
-  if (is.null(expr_matrix)) {
-    stop("Expression matrix not found.")
+if (is.null(expr_matrix)) {
+  stop("Expression matrix not found.")
+}
+
+expr_matrix <- as.matrix(expr_matrix)
+
+# =============================================================================
+# 2. Align annotation
+# =============================================================================
+
+gene_annot <- .cs_align_gene_annot(
+  gene_annot,
+  expr_matrix
+)
+
+valid <- !is.na(gene_annot$symbol)
+
+expr_matrix <- expr_matrix[
+  valid,
+  ,
+  drop = FALSE
+]
+
+gene_annot <- gene_annot[
+  valid,
+  ,
+  drop = FALSE
+]
+
+# =============================================================================
+# 3. Convert ENSG -> SYMBOL
+# =============================================================================
+
+rownames(expr_matrix) <- gene_annot$symbol
+
+# aggregate duplicated symbols
+expr_matrix <- rowsum(
+  expr_matrix,
+  group = rownames(expr_matrix)
+)
+
+expr_matrix <- as.matrix(expr_matrix)
+storage.mode(expr_matrix) <- "double"
+
+# =============================================================================
+# 4. Run xCell
+# =============================================================================
+
+if (!requireNamespace("xCell", quietly = TRUE)) {
+  stop(
+    "Please install 'xCell'\n",
+    "remotes::install_github('dviraran/xCell')"
+  )
+}
+
+utils::data("xCell.data", package = "xCell", envir = .GlobalEnv)
+
+xcell_scores <- immunedeconv::deconvolute(
+  expr_matrix,
+  method = "xcell"
+)
+
+# =============================================================================
+# 5. Format output
+# =============================================================================
+
+xcell_scores <- as.data.frame(xcell_scores)
+
+rownames(xcell_scores) <- xcell_scores$cell_type
+
+xcell_scores$cell_type <- NULL
+
+xcell_scores <- t(as.matrix(xcell_scores))
+
+xcell_scores <- as.data.frame(xcell_scores)
+
+xcell_scores$sample <- rownames(xcell_scores)
+
+rownames(xcell_scores) <- NULL
+
+# =============================================================================
+# 6. Remove low-information signatures
+# =============================================================================
+
+keep <- colMeans(
+  xcell_scores[
+    ,
+    !colnames(xcell_scores) %in% "sample",
+    drop = FALSE
+  ]
+) > min_score
+
+keep_names <- names(keep)[keep]
+
+scores <- xcell_scores[
+  ,
+  c("sample", keep_names),
+  drop = FALSE
+]
+
+# =============================================================================
+# 7. Merge metadata
+# =============================================================================
+
+if (!is.null(metadata)) {
+
+  if (!"Sample" %in% colnames(metadata)) {
+    stop("Metadata must contain 'Sample' column")
   }
 
-  expr_matrix <- as.matrix(expr_matrix)
+  metadata$sample <- as.character(metadata$Sample)
 
-  # -------------------------
-  # 2. Align annotation
-  # -------------------------
-  gene_annot <- .cs_align_gene_annot(
-    gene_annot,
-    expr_matrix
+  scores <- merge(
+    scores,
+    metadata,
+    by = "sample"
   )
+}
 
-  valid <- !is.na(gene_annot$symbol)
+# =============================================================================
+# 8. Build gene sets structure
+# =============================================================================
 
-  expr_matrix <- expr_matrix[
-    valid,
-    ,
-    drop = FALSE
-  ]
+signatures <- stats::setNames(
+  lapply(keep_names, function(x) x),
+  keep_names
+)
 
-  gene_annot <- gene_annot[
-    valid,
-    ,
-    drop = FALSE
-  ]
+annotation <- data.frame(
+  feature = keep_names,
+  type = "xcell"
+)
 
-  # -------------------------
-  # 3. Convert ENSG -> SYMBOL
-  # -------------------------
-  rownames(expr_matrix) <- gene_annot$symbol
+# =============================================================================
+# 9. Output object
+# =============================================================================
 
-  # aggregate duplicated symbols
-  expr_matrix <- rowsum(
-    expr_matrix,
-    group = rownames(expr_matrix)
-  )
+obj <- list(
+  scores = scores,
+  signatures = signatures,
+  annotation = annotation,
+  coverage = NULL,
+  expr_matrix = expr_matrix,
+  aggregated_matrix = expr_matrix,
+  score_matrix = expr_matrix,
+  method = "xcell",
+  params = list(
+    min_score = min_score
+  ),
+  dimensions = list(
+    n_samples = ncol(expr_matrix),
+    n_signatures = length(keep_names)
+  ),
+  source = "immunedeconv"
+)
 
-  expr_matrix <- as.matrix(expr_matrix)
-  storage.mode(expr_matrix) <- "double"
+# =============================================================================
+# 10. Optional matrix storage
+# =============================================================================
 
-  # -------------------------
-  # 4. Run xCell
-  # -------------------------
-  if (!requireNamespace("xCell", quietly = TRUE)) {
-    stop(
-      "Please install 'xCell'\n",
-      "remotes::install_github('dviraran/xCell')"
+if (store_matrix) {
+
+  obj$expr_matrix <- expr_matrix
+}
+
+class(obj) <- "cellsemble_result"
+
+# =============================================================================
+# 11. Console summary
+# =============================================================================
+
+if (verbose) {
+
+  .print_header("Cellsemble xCell Run")
+
+  .print_block("Summary", function() {
+
+    cat("Samples:            ", nrow(scores), "\n")
+    cat("xCell signatures:   ", length(keep_names), "\n")
+    cat("Minimum score:      ", min_score, "\n")
+    cat("Matrix stored:      ", store_matrix, "\n")
+
+  })
+
+  .print_block("Top detected signatures", function() {
+
+    avg_scores <- sort(
+      colMeans(
+        scores[
+          ,
+          keep_names,
+          drop = FALSE
+        ]
+      ),
+      decreasing = TRUE
     )
-  }
 
-  utils::data("xCell.data", package = "xCell", envir = .GlobalEnv)
-
-  xcell_scores <- immunedeconv::deconvolute(
-    expr_matrix,
-    method = "xcell"
-  )
-
-  # -------------------------
-  # 5. Format output
-  # -------------------------
-  xcell_scores <- as.data.frame(xcell_scores)
-
-  rownames(xcell_scores) <- xcell_scores$cell_type
-
-  xcell_scores$cell_type <- NULL
-
-  xcell_scores <- t(as.matrix(xcell_scores))
-
-  xcell_scores <- as.data.frame(xcell_scores)
-
-  xcell_scores$sample <- rownames(xcell_scores)
-
-  rownames(xcell_scores) <- NULL
-
-  # -------------------------
-  # 6. Remove low-information signatures
-  # -------------------------
-  keep <- colMeans(
-    xcell_scores[
-      ,
-      !colnames(xcell_scores) %in% "sample",
-      drop = FALSE
-    ]
-  ) > min_score
-
-  keep_names <- names(keep)[keep]
-
-  scores <- xcell_scores[
-    ,
-    c("sample", keep_names),
-    drop = FALSE
-  ]
-
-  # -------------------------
-  # 7. Merge metadata
-  # -------------------------
-  if (!is.null(metadata)) {
-
-    if (!"Sample" %in% colnames(metadata)) {
-      stop("Metadata must contain 'Sample' column")
-    }
-
-    metadata$sample <- as.character(metadata$Sample)
-
-    scores <- merge(
-      scores,
-      metadata,
-      by = "sample"
+    print(
+      round(
+        utils::head(avg_scores, 10),
+        3
+      )
     )
-  }
 
-  # -------------------------
-  # 8. Build gene sets structure
-  # -------------------------
-  signatures <- stats::setNames(
-    lapply(keep_names, function(x) x),
-    keep_names
-  )
+  })
+}
 
-  annotation <- data.frame(
-    feature = keep_names,
-    type = "xcell"
-  )
+# =============================================================================
+# 12. Return
+# =============================================================================
 
-  # -------------------------
-  # 9. Output object
-  # -------------------------
-  obj <- list(
-    scores = scores,
-    signatures = signatures,
-    annotation = annotation,
-    coverage = NULL,
-    expr_matrix = expr_matrix,
-    aggregated_matrix = expr_matrix,
-    score_matrix = expr_matrix,
-    method = "xcell",
-    params = list(
-      min_score = min_score
-    ),
-    dimensions = list(
-      n_samples = ncol(expr_matrix),
-      n_signatures = length(keep_names)
-    ),
-    source = "immunedeconv"
-  )
+return(invisible(obj))
 
-  # -------------------------
-  # 10. Optional matrix storage
-  # -------------------------
-  if (store_matrix) {
-
-    obj$expr_matrix <- expr_matrix
-  }
-
-  class(obj) <- "cellsemble_result"
-
-  # -------------------------
-  # 11. Console summary
-  # -------------------------
-  if (verbose) {
-
-    .print_header("Cellsemble xCell Run")
-
-    .print_block("Summary", function() {
-
-      cat("Samples:            ", nrow(scores), "\n")
-      cat("xCell signatures:   ", length(keep_names), "\n")
-      cat("Minimum score:      ", min_score, "\n")
-      cat("Matrix stored:      ", store_matrix, "\n")
-
-    })
-
-    .print_block("Top detected signatures", function() {
-
-      avg_scores <- sort(
-        colMeans(
-          scores[
-            ,
-            keep_names,
-            drop = FALSE
-          ]
-        ),
-        decreasing = TRUE
-      )
-
-      print(
-        round(
-          utils::head(avg_scores, 10),
-          3
-        )
-      )
-
-    })
-  }
-
-  # -------------------------
-  # 12. Return
-  # -------------------------
-  return(invisible(obj))
 }

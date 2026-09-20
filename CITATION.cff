@@ -27,7 +27,7 @@ keywords:
   - cell profiling
   - R
 
-version: "0.0.2"
+version: "0.1.0"
 date-released: "2026-07-10"
 
 repository-code: "https://github.com/Luiz-Garcia-R/cellsembleR"

@@ -58,219 +58,233 @@ cellsemble_epic_run <- function(
     verbose = TRUE
 ) {
 
-  # -------------------------
-  # 0. Dependencies
-  # -------------------------
-  # Immunedecomv
-  .cs_check_dependencies(
-    c("immunedeconv"),
-    source = "github"
-  )
+# =============================================================================
+# 0. Dependencies
+# =============================================================================
 
-  # Epic
-  .cs_check_dependencies(
-    "EPIC",
-    source = "bioc"
-  )
+# Immunedecomv
+.cs_check_dependencies(
+  c("immunedeconv"),
+  source = "github"
+)
 
-  .cs_attach_if_needed("EPIC")
+# Epic
+.cs_check_dependencies(
+  "EPIC",
+  source = "bioc"
+)
 
-  # -------------------------
-  # 1. Get data
-  # -------------------------
-  expr_matrix <- .cs_get_expr(project, id)
-  metadata    <- .cs_get_meta(project, id)
-  gene_annot  <- .cs_get_gene_annot(project, id)
+.cs_attach_if_needed("EPIC")
 
-  if (is.null(expr_matrix)) {
-    stop("Expression matrix not found.")
+# =============================================================================
+# 1. Get data
+# =============================================================================
+
+expr_matrix <- .cs_get_expr(project, id)
+metadata    <- .cs_get_meta(project, id)
+gene_annot  <- .cs_get_gene_annot(project, id)
+
+if (is.null(expr_matrix)) {
+  stop("Expression matrix not found.")
+}
+
+expr_matrix <- as.matrix(expr_matrix)
+
+# =============================================================================
+# 2. Align annotation
+# =============================================================================
+
+gene_annot <- .cs_align_gene_annot(
+  gene_annot,
+  expr_matrix
+)
+
+valid <- !is.na(gene_annot$symbol)
+
+expr_matrix <- expr_matrix[
+  valid,
+  ,
+  drop = FALSE
+]
+
+gene_annot <- gene_annot[
+  valid,
+  ,
+  drop = FALSE
+]
+
+# =============================================================================
+# 3. Convert ENSG -> SYMBOL
+# =============================================================================
+
+rownames(expr_matrix) <- gene_annot$symbol
+
+# aggregate duplicated symbols
+expr_matrix <- rowsum(
+  expr_matrix,
+  group = rownames(expr_matrix)
+)
+
+# =============================================================================
+# 4. Run EPIC
+# =============================================================================
+
+epic_scores <- immunedeconv::deconvolute(
+  expr_matrix,
+  method = "epic"
+)
+
+# =============================================================================
+# 5. Format output
+# =============================================================================
+
+epic_scores <- as.data.frame(epic_scores)
+
+rownames(epic_scores) <- epic_scores$cell_type
+
+epic_scores$cell_type <- NULL
+
+epic_scores <- t(as.matrix(epic_scores))
+
+epic_scores <- as.data.frame(epic_scores)
+
+epic_scores$sample <- rownames(epic_scores)
+
+rownames(epic_scores) <- NULL
+
+# =============================================================================
+# 6. Remove low-information signatures
+# =============================================================================
+
+keep <- colMeans(
+  epic_scores[
+    ,
+    !colnames(epic_scores) %in% "sample",
+    drop = FALSE
+  ]
+) > min_score
+
+keep_names <- names(keep)[keep]
+
+scores <- epic_scores[
+  ,
+  c("sample", keep_names),
+  drop = FALSE
+]
+
+# =============================================================================
+# 7. Merge metadata
+# =============================================================================
+
+if (!is.null(metadata)) {
+
+  if (!"Sample" %in% colnames(metadata)) {
+    stop("Metadata must contain 'Sample' column")
   }
 
-  expr_matrix <- as.matrix(expr_matrix)
+  metadata$sample <- as.character(metadata$Sample)
 
-  # -------------------------
-  # 2. Align annotation
-  # -------------------------
-  gene_annot <- .cs_align_gene_annot(
-    gene_annot,
-    expr_matrix
+  scores <- merge(
+    scores,
+    metadata,
+    by = "sample"
   )
+}
 
-  valid <- !is.na(gene_annot$symbol)
+# =============================================================================
+# 8. Build gene sets structure
+# =============================================================================
 
-  expr_matrix <- expr_matrix[
-    valid,
-    ,
-    drop = FALSE
-  ]
+signatures <- stats::setNames(
+  lapply(keep_names, function(x) x),
+  keep_names
+)
 
-  gene_annot <- gene_annot[
-    valid,
-    ,
-    drop = FALSE
-  ]
+annotation <- data.frame(
+  feature = keep_names,
+  type = "epic"
+)
 
-  # -------------------------
-  # 3. Convert ENSG -> SYMBOL
-  # -------------------------
-  rownames(expr_matrix) <- gene_annot$symbol
+# =============================================================================
+# 9. Output object
+# =============================================================================
 
-  # aggregate duplicated symbols
-  expr_matrix <- rowsum(
-    expr_matrix,
-    group = rownames(expr_matrix)
-  )
+obj <- list(
+  scores = scores,
+  signatures = signatures,
+  annotation = annotation,
+  coverage = NULL,
+  expr_matrix = expr_matrix,
+  aggregated_matrix = expr_matrix,
+  score_matrix = expr_matrix,
+  method = "epic",
+  params = list(
+    min_score = min_score
+  ),
+  dimensions = list(
+    n_samples = ncol(expr_matrix),
+    n_signatures = length(keep_names)
+  ),
+  source = "immunedeconv"
+)
 
-  # -------------------------
-  # 4. Run EPIC
-  # -------------------------
-  epic_scores <- immunedeconv::deconvolute(
-    expr_matrix,
-    method = "epic"
-  )
+# =============================================================================
+# 10. Optional matrix storage
+# =============================================================================
 
-  # -------------------------
-  # 5. Format output
-  # -------------------------
-  epic_scores <- as.data.frame(epic_scores)
+if (!store_matrix) {
 
-  rownames(epic_scores) <- epic_scores$cell_type
+  obj$expr_matrix <- NULL
+  obj$aggregated_matrix <- NULL
+  obj$score_matrix <- NULL
+}
 
-  epic_scores$cell_type <- NULL
+class(obj) <- "cellsemble_result"
 
-  epic_scores <- t(as.matrix(epic_scores))
+# =============================================================================
+# 11. Console summary
+# =============================================================================
 
-  epic_scores <- as.data.frame(epic_scores)
+if (verbose) {
 
-  epic_scores$sample <- rownames(epic_scores)
+  .print_header("Cellsemble EPIC Run")
 
-  rownames(epic_scores) <- NULL
+  .print_block("Summary", function() {
 
-  # -------------------------
-  # 6. Remove low-information signatures
-  # -------------------------
-  keep <- colMeans(
-    epic_scores[
-      ,
-      !colnames(epic_scores) %in% "sample",
-      drop = FALSE
-    ]
-  ) > min_score
+    cat("Samples:            ", nrow(scores), "\n")
+    cat("EPIC signatures:    ", length(keep_names), "\n")
+    cat("Minimum score:      ", min_score, "\n")
+    cat("Matrix stored:      ", store_matrix, "\n")
 
-  keep_names <- names(keep)[keep]
+  })
 
-  scores <- epic_scores[
-    ,
-    c("sample", keep_names),
-    drop = FALSE
-  ]
+  .print_block("Top detected signatures", function() {
 
-  # -------------------------
-  # 7. Merge metadata
-  # -------------------------
-  if (!is.null(metadata)) {
-
-    if (!"Sample" %in% colnames(metadata)) {
-      stop("Metadata must contain 'Sample' column")
-    }
-
-    metadata$sample <- as.character(metadata$Sample)
-
-    scores <- merge(
-      scores,
-      metadata,
-      by = "sample"
+    avg_scores <- sort(
+      colMeans(
+        scores[
+          ,
+          keep_names,
+          drop = FALSE
+        ]
+      ),
+      decreasing = TRUE
     )
-  }
 
-  # -------------------------
-  # 8. Build gene sets structure
-  # -------------------------
-  signatures <- stats::setNames(
-    lapply(keep_names, function(x) x),
-    keep_names
-  )
-
-  annotation <- data.frame(
-    feature = keep_names,
-    type = "epic"
-  )
-
-  # -------------------------
-  # 9. Output object
-  # -------------------------
-  obj <- list(
-    scores = scores,
-    signatures = signatures,
-    annotation = annotation,
-    coverage = NULL,
-    expr_matrix = expr_matrix,
-    aggregated_matrix = expr_matrix,
-    score_matrix = expr_matrix,
-    method = "epic",
-    params = list(
-      min_score = min_score
-    ),
-    dimensions = list(
-      n_samples = ncol(expr_matrix),
-      n_signatures = length(keep_names)
-    ),
-    source = "immunedeconv"
-  )
-
-  # -------------------------
-  # 10. Optional matrix storage
-  # -------------------------
-  if (!store_matrix) {
-
-    obj$expr_matrix <- NULL
-    obj$aggregated_matrix <- NULL
-    obj$score_matrix <- NULL
-  }
-
-  class(obj) <- "cellsemble_result"
-
-  # -------------------------
-  # 11. Console summary
-  # -------------------------
-  if (verbose) {
-
-    .print_header("Cellsemble EPIC Run")
-
-    .print_block("Summary", function() {
-
-      cat("Samples:            ", nrow(scores), "\n")
-      cat("EPIC signatures:    ", length(keep_names), "\n")
-      cat("Minimum score:      ", min_score, "\n")
-      cat("Matrix stored:      ", store_matrix, "\n")
-
-    })
-
-    .print_block("Top detected signatures", function() {
-
-      avg_scores <- sort(
-        colMeans(
-          scores[
-            ,
-            keep_names,
-            drop = FALSE
-          ]
-        ),
-        decreasing = TRUE
+    print(
+      round(
+        utils::head(avg_scores, 10),
+        3
       )
+    )
 
-      print(
-        round(
-          utils::head(avg_scores, 10),
-          3
-        )
-      )
+  })
+}
 
-    })
-  }
+# =============================================================================
+# 12. Return
+# =============================================================================
 
-  # -------------------------
-  # 12. Return
-  # -------------------------
-  return(invisible(obj))
+return(invisible(obj))
+
 }

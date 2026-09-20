@@ -1,21 +1,11 @@
 Package: cellsembleR
 Title: A Framework for Signature-Based Cellular and Biological Program Profiling from Transcriptomic Data
-Version: 0.0.2
-Authors@R: c(
+Version: 0.1.0
+Authors@R:
     person("Luiz Fernando", "Cardoso Garcia",
            email = "luiz.cardoso@ufpr.br",
            role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0002-9616-0927")
-    ),
-    person("Ana Carolina", "Demczuk",
-           email = "anademczuk@ufpr.br",
-           role = "ctb"
-    ),
-    person("Giovanna", "Lyssa Nascimento",
-           email = "giovanna.lyssa@ufpr.br",
-           role = "ctb"
-    )
-  )
+           comment = c(ORCID = "0000-0002-9616-0927"))
 Description: 
     provides a framework for extracting, integrating, and interpreting
     biological signatures from bulk transcriptomic data. The
@@ -32,8 +22,6 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Imports:
     AnnotationDbi,
-    circlize,
-    ggplot2,
     immunedeconv,    
     MCPcounter,
     org.Hs.eg.db,
@@ -43,8 +31,10 @@ Imports:
 Suggests:
     autornaR,
     car,
+    circlize,
     ComplexHeatmap,
     crayon,
+    ggplot2,
     knitr,
     rmarkdown,
     testthat,

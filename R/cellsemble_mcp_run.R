@@ -57,165 +57,176 @@ cellsemble_mcp_run <- function(
     verbose = TRUE
 ) {
 
-  # -------------------------
-  # 0. Dependencies
-  # -------------------------
-  .cs_check_dependencies(
-    "MCPcounter",
-    source = "bioc"
+# =============================================================================
+# 0. Dependencies
+# =============================================================================
+
+.cs_check_dependencies(
+  "MCPcounter",
+  source = "bioc"
+)
+
+.cs_check_dependencies(
+  "org.Hs.eg.db",
+  source = "bioc"
+)
+
+stopifnot(requireNamespace("AnnotationDbi", quietly = TRUE))
+
+.cs_attach_if_needed("MCPcounter")
+
+# =============================================================================
+# 1. Prepare expression (NEW LAYER)
+# =============================================================================
+
+expr_matrix <- .cs_prepare_expression_for_method(
+  project = project,
+  id = id,
+  method = "mcp_counter"
+)
+
+metadata <- .cs_get_meta(project, id)
+
+if (is.null(expr_matrix)) {
+  stop("Expression matrix not found.")
+}
+
+# =============================================================================
+# 2. Run MCP-counter
+# =============================================================================
+
+mcp_scores <- MCPcounter::MCPcounter.estimate(
+  expr_matrix,
+  featuresType = "HUGO_symbols"
+)
+
+mcp_scores <- as.matrix(mcp_scores)
+
+# safety check (IMPORTANT)
+if (nrow(mcp_scores) == 0 || ncol(mcp_scores) == 0) {
+  stop(
+    "MCP-counter returned empty matrix after gene mapping. ",
+    "Check gene symbol compatibility."
   )
+}
 
-  .cs_check_dependencies(
-    "org.Hs.eg.db",
-    source = "bioc"
-  )
+# =============================================================================
+# 3. Format output
+# =============================================================================
 
-  stopifnot(requireNamespace("AnnotationDbi", quietly = TRUE))
+mcp_scores <- as.data.frame(t(mcp_scores))
 
-  .cs_attach_if_needed("MCPcounter")
+mcp_scores$sample <- rownames(mcp_scores)
+rownames(mcp_scores) <- NULL
 
-  # -------------------------
-  # 1. Prepare expression (NEW LAYER)
-  # -------------------------
-  expr_matrix <- .cs_prepare_expression_for_method(
-    project = project,
-    id = id,
-    method = "mcp_counter"
-  )
+# =============================================================================
+# 4. Remove low-information signatures
+# =============================================================================
 
-  metadata <- .cs_get_meta(project, id)
+score_cols <- setdiff(colnames(mcp_scores), "sample")
 
-  if (is.null(expr_matrix)) {
-    stop("Expression matrix not found.")
+keep <- colMeans(mcp_scores[, score_cols, drop = FALSE]) > min_score
+keep_names <- names(keep)[keep]
+
+if (length(keep_names) == 0) {
+  stop("No MCP signatures passed min_score filter.")
+}
+
+scores <- mcp_scores[, c("sample", keep_names), drop = FALSE]
+
+# =============================================================================
+# 5. Merge metadata
+# =============================================================================
+
+if (!is.null(metadata)) {
+
+  if (!"Sample" %in% colnames(metadata)) {
+    stop("Metadata must contain 'Sample' column")
   }
 
-  # -------------------------
-  # 2. Run MCP-counter
-  # -------------------------
-  mcp_scores <- MCPcounter::MCPcounter.estimate(
-    expr_matrix,
-    featuresType = "HUGO_symbols"
-  )
+  metadata$sample <- as.character(metadata$Sample)
 
-  mcp_scores <- as.matrix(mcp_scores)
+  scores <- merge(scores, metadata, by = "sample")
+}
 
-  # safety check (IMPORTANT)
-  if (nrow(mcp_scores) == 0 || ncol(mcp_scores) == 0) {
-    stop(
-      "MCP-counter returned empty matrix after gene mapping. ",
-      "Check gene symbol compatibility."
+# =============================================================================
+# 6. Build gene sets structure
+# =============================================================================
+signatures <- stats::setNames(
+  lapply(keep_names, identity),
+  keep_names
+)
+
+annotation <- data.frame(
+  feature = keep_names,
+  type = "mcp_counter"
+)
+
+# =============================================================================
+# 7. Output object
+# =============================================================================
+
+obj <- list(
+  scores = scores,
+  signatures = signatures,
+  annotation = annotation,
+  coverage = NULL,
+  expr_matrix = expr_matrix,
+  aggregated_matrix = expr_matrix,
+  score_matrix = expr_matrix,
+  method = "mcp_counter",
+  params = list(
+    min_score = min_score
+  ),
+  dimensions = list(
+    n_samples = nrow(scores),
+    n_signatures = length(keep_names)
+  ),
+  source = "mcpcounter"
+)
+
+# =============================================================================
+# 8. Optional matrix storage
+# =============================================================================
+
+if (!store_matrix) {
+  obj$expr_matrix <- NULL
+  obj$aggregated_matrix <- NULL
+  obj$score_matrix <- NULL
+}
+
+class(obj) <- "cellsemble_result"
+
+# =============================================================================
+# 9. Console summary
+# =============================================================================
+
+if (verbose) {
+
+  .print_header("Cellsemble MCP-counter Run")
+
+  .print_block("Summary", function() {
+    cat("Samples:           ", nrow(scores), "\n")
+    cat("MCP signatures:    ", length(keep_names), "\n")
+    cat("Min score:         ", min_score, "\n")
+    cat("Matrix stored:     ", store_matrix, "\n")
+  })
+
+  .print_block("Top detected signatures", function() {
+
+    avg_scores <- sort(
+      colMeans(scores[, keep_names, drop = FALSE]),
+      decreasing = TRUE
     )
-  }
 
-  # -------------------------
-  # 3. Format output
-  # -------------------------
-  mcp_scores <- as.data.frame(t(mcp_scores))
+    print(round(utils::head(avg_scores, 10), 3))
+  })
+}
 
-  mcp_scores$sample <- rownames(mcp_scores)
-  rownames(mcp_scores) <- NULL
+# =============================================================================
+# 10. Return
+# =============================================================================
 
-  # -------------------------
-  # 4. Remove low-information signatures
-  # -------------------------
-  score_cols <- setdiff(colnames(mcp_scores), "sample")
+return(invisible(obj))
 
-  keep <- colMeans(mcp_scores[, score_cols, drop = FALSE]) > min_score
-  keep_names <- names(keep)[keep]
-
-  if (length(keep_names) == 0) {
-    stop("No MCP signatures passed min_score filter.")
-  }
-
-  scores <- mcp_scores[, c("sample", keep_names), drop = FALSE]
-
-  # -------------------------
-  # 5. Merge metadata
-  # -------------------------
-  if (!is.null(metadata)) {
-
-    if (!"Sample" %in% colnames(metadata)) {
-      stop("Metadata must contain 'Sample' column")
-    }
-
-    metadata$sample <- as.character(metadata$Sample)
-
-    scores <- merge(scores, metadata, by = "sample")
-  }
-
-  # -------------------------
-  # 6. Build gene sets structure
-  # -------------------------
-  signatures <- stats::setNames(
-    lapply(keep_names, identity),
-    keep_names
-  )
-
-  annotation <- data.frame(
-    feature = keep_names,
-    type = "mcp_counter"
-  )
-
-  # -------------------------
-  # 7. Output object
-  # -------------------------
-  obj <- list(
-    scores = scores,
-    signatures = signatures,
-    annotation = annotation,
-    coverage = NULL,
-    expr_matrix = expr_matrix,
-    aggregated_matrix = expr_matrix,
-    score_matrix = expr_matrix,
-    method = "mcp_counter",
-    params = list(
-      min_score = min_score
-    ),
-    dimensions = list(
-      n_samples = nrow(scores),
-      n_signatures = length(keep_names)
-    ),
-    source = "mcpcounter"
-  )
-
-  # -------------------------
-  # 8. Optional matrix storage
-  # -------------------------
-  if (!store_matrix) {
-    obj$expr_matrix <- NULL
-    obj$aggregated_matrix <- NULL
-    obj$score_matrix <- NULL
-  }
-
-  class(obj) <- "cellsemble_result"
-
-  # -------------------------
-  # 9. Console summary
-  # -------------------------
-  if (verbose) {
-
-    .print_header("Cellsemble MCP-counter Run")
-
-    .print_block("Summary", function() {
-      cat("Samples:           ", nrow(scores), "\n")
-      cat("MCP signatures:    ", length(keep_names), "\n")
-      cat("Min score:         ", min_score, "\n")
-      cat("Matrix stored:     ", store_matrix, "\n")
-    })
-
-    .print_block("Top detected signatures", function() {
-
-      avg_scores <- sort(
-        colMeans(scores[, keep_names, drop = FALSE]),
-        decreasing = TRUE
-      )
-
-      print(round(utils::head(avg_scores, 10), 3))
-    })
-  }
-
-  # -------------------------
-  # 10. Return
-  # -------------------------
-  return(invisible(obj))
 }

@@ -34,10 +34,4 @@ and examples.
 \author{
 \strong{Maintainer}: Luiz Fernando Cardoso Garcia \email{luiz.cardoso@ufpr.br} (\href{https://orcid.org/0000-0002-9616-0927}{ORCID})
 
-Other contributors:
-\itemize{
-  \item Ana Carolina Demczuk \email{anademczuk@ufpr.br} [contributor]
-  \item Giovanna Lyssa Nascimento \email{giovanna.lyssa@ufpr.br} [contributor]
-}
-
 }

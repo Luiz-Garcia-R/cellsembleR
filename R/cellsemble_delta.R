@@ -12,6 +12,8 @@
 #'   displays standardized differences between groups, or
 #'   \code{"difference"}, which displays absolute differences in signature
 #'   scores.
+#' @param title Character. Plot title. Standard text
+#' \code{"Differential Cellsemble Scores"}.
 #' @param significance Logical. If \code{TRUE}, significance labels based on
 #'   adjusted p-values are displayed on the plot.
 #' @param alpha Numeric value defining the significance threshold used for
@@ -81,6 +83,7 @@
 
 cellsemble_delta <- function(compare_obj,
                              metric = c("effect_size", "difference"),
+                             title = "Differential Cellsemble Scores",
                              significance = TRUE,
                              alpha = 0.05,
                              sort = TRUE
@@ -88,286 +91,298 @@ cellsemble_delta <- function(compare_obj,
 
   metric <- match.arg(metric)
 
-  # -------------------------
-  # 1. Validation
-  # -------------------------
+# =============================================================================
+# 1. Validation
+# =============================================================================
+
   if (!inherits(compare_obj, "cellsemble_compare")) {
 
-    stop(
-      "Input must be a 'cellsemble_compare' object."
+  stop(
+    "Input must be a 'cellsemble_compare' object."
+  )
+}
+
+df <- compare_obj$results
+
+if (metric == "difference") {
+
+  df$ci_low  <- df$difference_ci_low
+  df$ci_high <- df$difference_ci_high
+
+} else {
+
+  df$ci_low  <- df$effect_ci_low
+  df$ci_high <- df$effect_ci_high
+
+}
+
+if (all(is.na(df$ci_low))) {
+  cat("Bootstrap CI:       Not available\n")
+} else {
+  cat("Bootstrap CI:       Available\n")
+}
+
+# =============================================================================
+# 2. Direction
+# =============================================================================
+
+g1 <- unique(df$group1)
+g2 <- unique(df$group2)
+
+df$Direction <- ifelse(
+
+  df[[metric]] > 0,
+
+  paste0(
+    "Higher in ",
+    g2
+  ),
+
+  paste0(
+    "Higher in ",
+    g1
+  )
+
+)
+
+# =============================================================================
+# 3. Significance stars
+# =============================================================================
+
+df$stars <- ifelse(
+  df$p_adj < 0.001,
+  "***",
+  ifelse(
+    df$p_adj < 0.01,
+    "**",
+    ifelse(
+      df$p_adj < alpha,
+      "*",
+      ""
     )
-  }
+  )
+)
 
-  df <- compare_obj$results
+# =============================================================================
+# 4. Sort and Factorize
+# =============================================================================
 
-  if (metric == "difference") {
+if (sort) {
+  df <- df[
+    order(df[[metric]]),
+  ]
+}
 
-    df$ci_low  <- df$difference_ci_low
-    df$ci_high <- df$difference_ci_high
+df$signatures <- factor(df$signatures, levels = unique(df$signatures))
 
-  } else {
+# =============================================================================
+# 5. Star position
+# =============================================================================
 
-    df$ci_low  <- df$effect_ci_low
-    df$ci_high <- df$effect_ci_high
+rng <- diff(
+  range(
+    df[[metric]],
+    na.rm = TRUE
+  )
+)
 
-  }
+offset <- rng * 0.05
 
-  if (all(is.na(df$ci_low))) {
-    cat("Bootstrap CI:       Not available\n")
-  } else {
-    cat("Bootstrap CI:       Available\n")
-  }
+df$label_y <- ifelse(
+  df[[metric]] > 0,
+  df$ci_high + offset,
+  df$ci_low - offset
+)
 
-  # -------------------------
-  # 2. Direction
-  # -------------------------
+# =============================================================================
+# 6. Plot
+# =============================================================================
 
-  g1 <- unique(df$group1)
-  g2 <- unique(df$group2)
+p <- ggplot2::ggplot(
+  df,
+  ggplot2::aes(
+    x = .data$signatures,
+    y = .data[[metric]],
+    fill = .data$Direction
+  )
+) +
 
-  df$Direction <- ifelse(
+  ggplot2::geom_col(
+    width = 0.8
+  ) +
 
-    df[[metric]] > 0,
-
-    paste0(
-      "Higher in ",
-      g2
+  ggplot2::geom_errorbar(
+    ggplot2::aes(
+      ymin = .data$ci_low,
+      ymax = .data$ci_high
     ),
 
-    paste0(
-      "Higher in ",
-      g1
-    )
+    width = 0.15,
+    linewidth = 0.5,
+    colour = "grey20"
+  ) +
 
-  )
+  ggplot2::geom_point(
+    shape = 21,
+    fill = "grey20",
+    colour = "grey20",
+    size = 2
+  ) +
 
-  # -------------------------
-  # 3. Significance stars
-  # -------------------------
-  df$stars <- ifelse(
-    df$p_adj < 0.001,
-    "***",
-    ifelse(
-      df$p_adj < 0.01,
-      "**",
-      ifelse(
-        df$p_adj < alpha,
-        "*",
-        ""
-      )
-    )
-  )
+  ggplot2::coord_flip() +
 
-  # -------------------------
-  # 4. Sort and Factorize
-  # -------------------------
-  if (sort) {
-    df <- df[
-      order(df[[metric]]),
-    ]
-  }
+  ggplot2::geom_hline(
+    yintercept = 0,
+    linewidth = 0.5,
+    colour = "grey80"
+  ) +
 
-  df$signatures <- factor(df$signatures, levels = unique(df$signatures))
-
-  # -------------------------
-  # 5. Star position
-  # -------------------------
-  rng <- diff(
-    range(
-      df[[metric]],
-      na.rm = TRUE
-    )
-  )
-
-  offset <- rng * 0.05
-
-  df$label_y <- ifelse(
-    df[[metric]] > 0,
-    df$ci_high + offset,
-    df$ci_low - offset
-  )
-
-  # -------------------------
-  # 6. Plot
-  # -------------------------
-  p <- ggplot2::ggplot(
-    df,
-    ggplot2::aes(
-      x = .data$signatures,
-      y = .data[[metric]],
-      fill = .data$Direction
+  ggplot2::scale_fill_manual(
+    values = c(
+      "#2166ac",
+      "#b2182b"
     )
   ) +
 
-    ggplot2::geom_col(
-      width = 0.8
-    ) +
-
-    ggplot2::geom_errorbar(
-      ggplot2::aes(
-        ymin = .data$ci_low,
-        ymax = .data$ci_high
-      ),
-
-      width = 0.15,
-      linewidth = 0.5,
-      colour = "grey20"
-    ) +
-
-    ggplot2::geom_point(
-      shape = 21,
-      fill = "grey20",
-      colour = "grey20",
-      size = 2
-    ) +
-
-    ggplot2::coord_flip() +
-
-    ggplot2::geom_hline(
-      yintercept = 0,
-      linewidth = 0.5,
-      colour = "grey80"
-    ) +
-
-    ggplot2::scale_fill_manual(
-      values = c(
-        "#2166ac",
-        "#b2182b"
-      )
-    ) +
-
-    ggplot2::labs(
-      title = paste0(
-        "Differential Cellsemble Scores"
-      ),
-      y = metric,
-      x = NULL,
-      fill = NULL
-    ) +
-
-    ggplot2::expand_limits(
-      y = c(
-        min(df$ci_low) - offset * 2,
-        max(df$ci_high) + offset * 2
-      )
-    )
-
-  p <- p +
-    ggplot2::theme_minimal(
-    base_size = 12
+  ggplot2::labs(
+    title = paste0(
+      title
+    ),
+    y = metric,
+    x = NULL,
+    fill = NULL
   ) +
 
-    ggplot2::theme(
-
-      panel.grid.major.y =
-        ggplot2::element_blank(),
-
-      panel.grid.minor =
-        ggplot2::element_blank(),
-
-      legend.position = "top",
-
-      plot.title =
-        ggplot2::element_text(
-        )
+  ggplot2::expand_limits(
+    y = c(
+      min(df$ci_low) - offset * 2,
+      max(df$ci_high) + offset * 2
     )
-
-  # -------------------------
-  # 7. Stars
-  # -------------------------
-  if (significance) {
-
-    df_stars <- df[df$stars != "", , drop = FALSE]
-
-    if (nrow(df_stars) > 0) {
-      p <- p +
-        ggplot2::geom_text(
-          data = df_stars,
-
-          ggplot2::aes(
-            y = .data$label_y,
-            label = .data$stars
-          ),
-
-          size = 4
-        )
-    }
-  }
-
-  print(p)
-
-  # -------------------------
-  # 8. Output
-  # -------------------------
-  out <- list(
-    data = df,
-    metric = metric,
-    alpha = alpha,
-    plot = p
   )
 
-  class(out) <- "cellsemble_delta"
+p <- p +
+  ggplot2::theme_minimal(
+  base_size = 12
+) +
 
-  # -------------------------
-  # Console summary
-  # -------------------------
-  .print_header("Cellsemble Delta")
+  ggplot2::theme(
 
-  .print_block("Summary", function() {
+    panel.grid.major.y =
+      ggplot2::element_blank(),
 
-    cat("Metric:             ", metric, "\n")
-    cat("Significance shown: ", significance, "\n")
-    cat("Alpha threshold:    ", alpha, "\n")
-    cat("Signatures tested:  ", nrow(df), "\n")
+    panel.grid.minor =
+      ggplot2::element_blank(),
 
-  })
+    legend.position = "top",
 
-  .print_block("Comparison", function() {
-
-    cat(
-      "Groups:             ",
-      unique(df$group1),
-      " vs ",
-      unique(df$group2),
-      "\n",
-      sep = ""
-    )
-
-  })
-
-  .print_block("Direction summary", function() {
-
-    print(
-      table(df$Direction)
-    )
-
-  })
-
-  .print_block("Top changes", function() {
-
-    top <- df[
-      order(
-        abs(df[[metric]]),
-        decreasing = TRUE
-      ),
-    ]
-
-    print(
-      utils::head(
-        top[
-          ,
-          c(
-            "signatures",
-            metric,
-            "Direction",
-            "p_adj"
-          )
-        ],
-        5
+    plot.title =
+      ggplot2::element_text(
       )
-    )
-  })
+  )
 
-  invisible(out)
+# =============================================================================
+# 7. Stars
+# =============================================================================
+
+if (significance) {
+
+  df_stars <- df[df$stars != "", , drop = FALSE]
+
+  if (nrow(df_stars) > 0) {
+    p <- p +
+      ggplot2::geom_text(
+        data = df_stars,
+
+        ggplot2::aes(
+          y = .data$label_y,
+          label = .data$stars
+        ),
+
+        size = 4
+      )
+  }
+}
+
+print(p)
+
+# =============================================================================
+# 8. Output
+# =============================================================================
+
+out <- list(
+  data = df,
+  metric = metric,
+  alpha = alpha,
+  plot = p
+)
+
+class(out) <- "cellsemble_delta"
+
+# =============================================================================
+# 9. Console summary
+# =============================================================================
+
+.print_header("Cellsemble Delta")
+
+.print_block("Summary", function() {
+
+  cat("Metric:             ", metric, "\n")
+  cat("Significance shown: ", significance, "\n")
+  cat("Alpha threshold:    ", alpha, "\n")
+  cat("Signatures tested:  ", nrow(df), "\n")
+
+})
+
+.print_block("Comparison", function() {
+
+  cat(
+    "Groups:             ",
+    unique(df$group1),
+    " vs ",
+    unique(df$group2),
+    "\n",
+    sep = ""
+  )
+
+})
+
+.print_block("Direction summary", function() {
+
+  print(
+    table(df$Direction)
+  )
+
+})
+
+.print_block("Top changes", function() {
+
+  top <- df[
+    order(
+      abs(df[[metric]]),
+      decreasing = TRUE
+    ),
+  ]
+
+  print(
+    utils::head(
+      top[
+        ,
+        c(
+          "signatures",
+          metric,
+          "Direction",
+          "p_adj"
+        )
+      ],
+      5
+    )
+  )
+})
+
+# =============================================================================
+# 10. Return
+# =============================================================================
+
+invisible(out)
 
 }

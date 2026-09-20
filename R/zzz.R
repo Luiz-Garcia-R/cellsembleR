@@ -17,4 +17,3 @@
     "GitHub: https://github.com/Luiz-Garcia-R/cellsembleR\n"
   )
 }
-
