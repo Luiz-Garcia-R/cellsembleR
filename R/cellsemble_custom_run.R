@@ -80,7 +80,7 @@
 #'    )
 #' )
 #'
-#' res <- cellsemble.custom_run(
+#' res <- cellsemble.custom.run(
 #' project = proj,
 #' signatures = signatures
 #' )
@@ -109,7 +109,7 @@
 #'   T_cells = "Lymphocytes"
 #' )
 #'
-#' res <- cellsemble.custom_run(
+#' res <- cellsemble.custom.run(
 #'   project = proj,
 #'   signatures = signatures,
 #'   parent_sets = parent_sets,
@@ -120,13 +120,13 @@
 #' @seealso
 #' \code{\link{cellsemble.compare}},
 #' \code{\link{cellsemble.boxplot}},
-#' \code{\link{cellsemble.epic_run}},
-#' \code{\link{cellsemble.mcp_run}},
-#' \code{\link{cellsemble.xcell_run}}
+#' \code{\link{cellsemble.epic.run}},
+#' \code{\link{cellsemble.mcp.run}},
+#' \code{\link{cellsemble.xcell.run}}
 #'
 #' @export
 
-cellsemble.custom_run <- function(project,
+cellsemble.custom.run <- function(project,
                                   signatures,
                                   parent_sets = NULL,
                                   adjustment = c("none", "subtract"),

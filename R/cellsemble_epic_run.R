@@ -42,14 +42,14 @@
 #' \pkg{immunedeconv} package.
 #'
 #' @seealso
-#' \code{\link{cellsemble.mcp_run}},
-#' \code{\link{cellsemble.xcell_run}},
-#' \code{\link{cellsemble.custom_run}},
+#' \code{\link{cellsemble.mcp.run}},
+#' \code{\link{cellsemble.xcell.run}},
+#' \code{\link{cellsemble.custom.run}},
 #' \code{\link{cellsemble.compare}}
 #'
 #' @export
 
-cellsemble.epic_run <- function(
+cellsemble.epic.run <- function(
     project,
     id = NULL,
     group_col = "Group",

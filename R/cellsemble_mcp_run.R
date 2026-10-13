@@ -41,14 +41,14 @@
 #' \code{min_score} are excluded from the returned object.
 #'
 #' @seealso
-#' \code{\link{cellsemble.epic_run}},
-#' \code{\link{cellsemble.xcell_run}},
-#' \code{\link{cellsemble.custom_run}},
+#' \code{\link{cellsemble.epic.run}},
+#' \code{\link{cellsemble.xcell.run}},
+#' \code{\link{cellsemble.custom.run}},
 #' \code{\link{cellsemble.compare}}
 #'
 #' @export
 
-cellsemble.mcp_run <- function(
+cellsemble.mcp.run <- function(
     project,
     id = NULL,
     group_col = "Group",

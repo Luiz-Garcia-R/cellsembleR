@@ -22,7 +22,7 @@ downstream analyses.
 
 The typical workflow consists of:
 \enumerate{
-\item Estimate signatures with one of the \verb{*_run()} functions.
+\item Estimate signatures with one of the \verb{*.run()} functions.
 \item Compare experimental groups with \code{cellsemble.compare()}.
 \item Visualize results using the plotting functions.
 }

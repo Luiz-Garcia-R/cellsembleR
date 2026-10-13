@@ -94,13 +94,13 @@ Example:
 
 cellsembleR provides multiple approaches:
 
--   cellsemble.epic_run(): Estimate immune and stromal cell fractions
+-   cellsemble.epic.run(): Estimate immune and stromal cell fractions
     using EPIC.
--   cellsemble.xcell_run(): Estimate a broad landscape of immune and
+-   cellsemble.xcell.run(): Estimate a broad landscape of immune and
     stromal signatures using xCell.
--   cellsemble.mcp_run(): Estimate cellular populations using
+-   cellsemble.mcp.run(): Estimate cellular populations using
     MCP-counter.
--   cellsemble.custom_run(): Calculate user-defined biological
+-   cellsemble.custom.run(): Calculate user-defined biological
     signatures from custom gene lists.
 
 Example:
@@ -108,12 +108,12 @@ Example:
 ``` r
 
 # EPIC-based signatures
-res <- cellsemble.epic_run(
+res <- cellsemble.epic.run(
     project = my_project
 )
 
 # Custom biological signatures
-res <- cellsemble.custom_run(
+res <- cellsemble.custom.run(
     project = my_project,
     gene_sets = signatures
 )
@@ -239,7 +239,7 @@ T_cells = c(
 )
 )
 
-res <- cellsemble.custom_run(
+res <- cellsemble.custom.run(
     project = my_project,
     signatures = cells_signature
 )
@@ -253,7 +253,7 @@ parent_sets <- list(
     T_cells = "Lymphocytes"
 )
 
-res <- cellsemble.custom_run(
+res <- cellsemble.custom.run(
     project = my_project,
     signatures = cells_signatures,
     parent_sets = parent_sets,
@@ -284,7 +284,7 @@ reproducibility and downstream exploration.
 ``` r
 
 # Estimate cellular signatures
-res <- cellsemble.epic_run(
+res <- cellsemble.epic.run(
     project = my_project
 )
 

@@ -48,14 +48,14 @@
 #' enrichment rather than absolute cell fractions.
 #'
 #' @seealso
-#' \code{\link{cellsemble.epic_run}},
-#' \code{\link{cellsemble.mcp_run}},
-#' \code{\link{cellsemble.custom_run}},
+#' \code{\link{cellsemble.epic.run}},
+#' \code{\link{cellsemble.mcp.run}},
+#' \code{\link{cellsemble.custom.run}},
 #' \code{\link{cellsemble.compare}}
 #'
 #' @export
 
-cellsemble.xcell_run <- function(
+cellsemble.xcell.run <- function(
     project,
     id = NULL,
     group_col = "Group",

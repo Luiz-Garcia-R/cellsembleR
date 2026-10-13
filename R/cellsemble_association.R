@@ -65,10 +65,10 @@
 #' @seealso
 #' \code{\link{cellsemble.compare}},
 #' \code{\link{cellsemble.boxplot}},
-#' \code{\link{cellsemble.custom_run}},
-#' \code{\link{cellsemble.epic_run}},
-#' \code{\link{cellsemble.mcp_run}},
-#' \code{\link{cellsemble.xcell_run}}
+#' \code{\link{cellsemble.custom.run}},
+#' \code{\link{cellsemble.epic.run}},
+#' \code{\link{cellsemble.mcp.run}},
+#' \code{\link{cellsemble.xcell.run}}
 #'
 #' @export
 
