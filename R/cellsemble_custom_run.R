@@ -5,7 +5,7 @@
 #' aligned and converted to gene symbols, duplicated symbols are aggregated,
 #' and optional gene-wise Z-score normalization can be applied prior to
 #' scoring. The resulting signature scores are returned as a standardized
-#' \code{cellsemble_result} object that can be used in downstream analyses such
+#' \code{cellsemble.result} object that can be used in downstream analyses such
 #' as group comparisons and visualization.
 #'
 #' This function enables users to score custom biological programs,
@@ -35,7 +35,7 @@
 #'   gene set coverage statistics.
 #'
 #' @return
-#' An object of class \code{cellsemble_result} containing:
+#' An object of class \code{cellsemble.result} containing:
 #' \itemize{
 #'   \item Sample-level signature scores.
 #'   \item Gene set coverage statistics.
@@ -80,7 +80,7 @@
 #'    )
 #' )
 #'
-#' res <- cellsemble_custom_run(
+#' res <- cellsemble.custom_run(
 #' project = proj,
 #' signatures = signatures
 #' )
@@ -109,7 +109,7 @@
 #'   T_cells = "Lymphocytes"
 #' )
 #'
-#' res <- cellsemble_custom_run(
+#' res <- cellsemble.custom_run(
 #'   project = proj,
 #'   signatures = signatures,
 #'   parent_sets = parent_sets,
@@ -118,15 +118,15 @@
 #'}
 #'
 #' @seealso
-#' \code{\link{cellsemble_compare}},
-#' \code{\link{cellsemble_boxplot}},
-#' \code{\link{cellsemble_epic_run}},
-#' \code{\link{cellsemble_mcp_run}},
-#' \code{\link{cellsemble_xcell_run}}
+#' \code{\link{cellsemble.compare}},
+#' \code{\link{cellsemble.boxplot}},
+#' \code{\link{cellsemble.epic_run}},
+#' \code{\link{cellsemble.mcp_run}},
+#' \code{\link{cellsemble.xcell_run}}
 #'
 #' @export
 
-cellsemble_custom_run <- function(project,
+cellsemble.custom_run <- function(project,
                                   signatures,
                                   parent_sets = NULL,
                                   adjustment = c("none", "subtract"),
@@ -288,7 +288,7 @@ obj <- list(
   )
 )
 
-class(obj) <- "cellsemble_result"
+class(obj) <- "cellsemble.result"
 
 # =============================================================================
 # 8. Console summary

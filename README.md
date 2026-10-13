@@ -1,23 +1,26 @@
 # cellsembleR
 
-<!-- badges: start -->
+<!-- badges: start --> <!-- badges: end -->
 
-<!-- badges: end -->
+<table>
+<tr>
+<td width="70%" valign="top">
 
-**cellsembleR** is an R package designed to facilitate the extraction,
-analysis, and visualization of biological signatures from bulk
-transcriptomic data.
+**From gene signatures to biological insights.**
 
-The package provides a unified framework for estimating cellular
-signatures using reference-based methods (e.g., EPIC, xCell,
-MCP-counter) or user-defined gene signatures, followed by statistical
-comparison, association analysis, dimensionality reduction, and
-visualization.
+cellsembleR is an R package for extracting, analyzing, and visualizing biological signatures from bulk transcriptomic data.
 
-Unlike traditional deconvolution-only approaches, **cellsembleR**
-focuses on turning signature scores into interpretable biological
-features that can be compared across experimental conditions and
-integrated into downstream analyses.
+It supports reference-based cell signature estimation (e.g., EPIC, xCell, MCP-counter) and custom gene signatures, enabling statistical comparisons, association analyses, and dimensionality reduction.
+
+</td>
+
+<td width="30%" align="center" valign="middle">
+
+<img src=".github/images/logo_cellsembleR.png" width="160">
+
+</td>
+</tr>
+</table>
 
 ## Installation
 
@@ -42,7 +45,7 @@ The general workflow is:
 1.  Bulk RNA-seq data
 2.  Cell signature estimation: (EPIC / xCell / MCP-counter / Custom
     signatures)
-3.  cellsemble_result object
+3.  cellsemble.result object
 
 -   Statistical analysis (compare/delta)
 -   Visualization (heatmap/dimred/boxplot)
@@ -91,13 +94,13 @@ Example:
 
 cellsembleR provides multiple approaches:
 
--   cellsemble_epic_run(): Estimate immune and stromal cell fractions
+-   cellsemble.epic_run(): Estimate immune and stromal cell fractions
     using EPIC.
--   cellsemble_xcell_run(): Estimate a broad landscape of immune and
+-   cellsemble.xcell_run(): Estimate a broad landscape of immune and
     stromal signatures using xCell.
--   cellsemble_mcp_run(): Estimate cellular populations using
+-   cellsemble.mcp_run(): Estimate cellular populations using
     MCP-counter.
--   cellsemble_custom_run(): Calculate user-defined biological
+-   cellsemble.custom_run(): Calculate user-defined biological
     signatures from custom gene lists.
 
 Example:
@@ -105,12 +108,12 @@ Example:
 ``` r
 
 # EPIC-based signatures
-res <- cellsemble_epic_run(
+res <- cellsemble.epic_run(
     project = my_project
 )
 
 # Custom biological signatures
-res <- cellsemble_custom_run(
+res <- cellsemble.custom_run(
     project = my_project,
     gene_sets = signatures
 )
@@ -118,13 +121,13 @@ res <- cellsemble_custom_run(
 
 ## Signature Exploration and Statistics
 
-After generating a cellsemble_result object:
+After generating a cellsemble.result object:
 
 ### Compare signatures between groups
 
 ``` r
 
-comparison <- cellsemble_compare(
+comparison <- cellsemble.compare(
     res
 )
 ```
@@ -140,7 +143,7 @@ Performs statistical testing between two groups, including:
 
 ``` r
 
-cellsemble_delta(
+cellsemble.delta(
     comparison
 )
 ```
@@ -152,7 +155,7 @@ programs enriched in each group.
 
 ``` r
 
-cellsemble_boxplot(
+cellsemble.boxplot(
     res,
     signature = "T_cells"
 )
@@ -164,7 +167,7 @@ Visualizes signature distributions across experimental groups.
 
 ``` r
 
-cellsemble_association(
+cellsemble.association(
     res
 )
 ```
@@ -180,7 +183,7 @@ Supports:
 
 ``` r
 
-cellsemble_dimred(
+cellsemble.dimred(
     res,
     method = "umap"
 )
@@ -197,7 +200,7 @@ Available methods:
 
 ``` r
 
-cellsemble_heatmap(
+cellsemble.heatmap(
     res
 )
 ```
@@ -236,7 +239,7 @@ T_cells = c(
 )
 )
 
-res <- cellsemble_custom_run(
+res <- cellsemble.custom_run(
     project = my_project,
     signatures = cells_signature
 )
@@ -250,7 +253,7 @@ parent_sets <- list(
     T_cells = "Lymphocytes"
 )
 
-res <- cellsemble_custom_run(
+res <- cellsemble.custom_run(
     project = my_project,
     signatures = cells_signatures,
     parent_sets = parent_sets,
@@ -265,13 +268,13 @@ accounting for broader cellular identities.
 
 Most functions return structured S3 objects:
 
--   cellsemble_result
--   cellsemble_compare
--   cellsemble_delta
--   cellsemble_corr
--   cellsemble_dimred
--   cellsemble_heatmap
--   cellsemble_boxplot
+-   cellsemble.result
+-   cellsemble.compare
+-   cellsemble.delta
+-   cellsemble.corr
+-   cellsemble.dimred
+-   cellsemble.heatmap
+-   cellsemble.boxplot
 
 These objects store both results and analysis parameters, facilitating
 reproducibility and downstream exploration.
@@ -281,34 +284,31 @@ reproducibility and downstream exploration.
 ``` r
 
 # Estimate cellular signatures
-res <- cellsemble_epic_run(
+res <- cellsemble.epic_run(
     project = my_project
 )
 
 # Compare groups
-comp <- cellsemble_compare(
+comp <- cellsemble.compare(
     res
 )
 
 # Visualize differences
-cellsemble_delta(
+cellsemble.delta(
     comp
 )
 
 # Heatmap visualization
-cellsemble_heatmap(
+cellsemble.heatmap(
     res
 )
 
 # Dimensional reduction
-cellsemble_dimred(
+cellsemble.dimred(
     res,
     method = "pca"
 )
 ```
-
-cellsembleR v0.0.1 was developed during the author's postdoctoral
-research under the supervision of Carolina Mathias.
 
 ## Contact
 

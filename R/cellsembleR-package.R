@@ -17,7 +17,7 @@
 #' The typical workflow consists of:
 #'
 #' 1. Estimate signatures with one of the `*_run()` functions.
-#' 2. Compare experimental groups with `cellsemble_compare()`.
+#' 2. Compare experimental groups with `cellsemble.compare()`.
 #' 3. Visualize results using the plotting functions.
 #'
 #' See the package README and function documentation for complete workflows

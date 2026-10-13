@@ -9,13 +9,13 @@
 # Version control / Git
 ^\\.git$
 ^\\.gitignore$
+^\.github$
 
 # Documentation / Markdown / Notes
 ^README\\.md$
 ^LICENSE\\.md$
 ^NEWS\\.md$
 ^docs/
-^vignettes/
 ^CITATION\.cff$
 
 # Cache / temporary / output
